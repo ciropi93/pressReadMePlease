@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.webkit.WebView
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -31,6 +32,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mlolSite: EditText
     private lateinit var mlolUser: EditText
     private lateinit var mlolPass: EditText
+    private lateinit var spidBox: CheckBox
     private lateinit var prUser: EditText
     private lateinit var prPass: EditText
     private lateinit var runButton: Button
@@ -55,7 +57,11 @@ class MainActivity : AppCompatActivity() {
         mlolSite = field("https://tuabiblioteca.medialibrary.it", InputType.TYPE_TEXT_VARIATION_URI)
         mlolUser = field("Username MLOL", InputType.TYPE_CLASS_TEXT)
         mlolPass = field("Password MLOL", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD)
-        listOf(mlolSite, mlolUser, mlolPass).forEach { root.addView(it) }
+        spidBox = CheckBox(this).apply {
+            text = "Accesso con SPID (login manuale)"
+            setOnCheckedChangeListener { _, checked -> updateSpidVisibility(checked) }
+        }
+        listOf(mlolSite, spidBox, mlolUser, mlolPass).forEach { root.addView(it) }
 
         root.addView(header("PressReader"))
         prUser = field("Email PressReader", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS)
@@ -86,7 +92,7 @@ class MainActivity : AppCompatActivity() {
 
         web = WebView(this).apply {
             visibility = View.GONE
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(480))
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(560))
             setOnTouchListener { v, _ ->
                 v.parent.requestDisallowInterceptTouchEvent(true)
                 false
@@ -104,6 +110,8 @@ class MainActivity : AppCompatActivity() {
         mlolPass.setText(c.mlolPass)
         prUser.setText(c.prUser)
         prPass.setText(c.prPass)
+        spidBox.isChecked = c.spid
+        updateSpidVisibility(c.spid)
         showLastRun()
     }
 
@@ -125,6 +133,12 @@ class MainActivity : AppCompatActivity() {
         setSingleLine()
     }
 
+    private fun updateSpidVisibility(spid: Boolean) {
+        val v = if (spid) View.GONE else View.VISIBLE
+        mlolUser.visibility = v
+        mlolPass.visibility = v
+    }
+
     private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
 
     private fun readConfig(): Config? {
@@ -136,6 +150,7 @@ class MainActivity : AppCompatActivity() {
             mlolPass = mlolPass.text.toString(),
             prUser = prUser.text.toString().trim(),
             prPass = prPass.text.toString(),
+            spid = spidBox.isChecked,
         )
         if (!c.isComplete()) {
             toast("Compila tutti i campi")

@@ -101,7 +101,8 @@ class Renewer(private val web: WebView, private val log: (String) -> Unit) {
 
     suspend fun run(config: Config): String {
         accessDenied = false
-        resetBrowser()
+        // In modalità SPID i cookie si conservano: se la sessione MLOL è ancora valida si salta il login.
+        if (!config.spid) resetBrowser()
 
         val origin = visitMlol(config)
         login(config, origin)
@@ -109,7 +110,7 @@ class Renewer(private val web: WebView, private val log: (String) -> Unit) {
         openCorriere(origin)
         openPressReader()
         val days = pressReaderFlow(config)
-        resetBrowser()
+        if (!config.spid) resetBrowser() else CookieManager.getInstance().flush()
 
         return if (days != null) {
             "Rinnovo completato: $days giorni di accesso."
@@ -133,6 +134,19 @@ class Renewer(private val web: WebView, private val log: (String) -> Unit) {
     }
 
     private suspend fun login(config: Config, origin: String) {
+        if (config.spid) {
+            if (waitFor("a[href*='logout']", 3000)) {
+                log("MLOL: sessione già attiva, salto il login")
+                return
+            }
+            log("MLOL: accedi con SPID nella finestra qui sotto (attendo fino a 5 minuti)")
+            if (!waitUntil(300000, 1000) { exists("a[href*='logout']") }) {
+                throw FlowException("Login SPID non completato entro 5 minuti")
+            }
+            log("MLOL: login SPID rilevato")
+            return
+        }
+
         log("MLOL: login")
         if (!waitFor("#Username", 3000)) {
             val clicked = waitUntil(5000) { clickText("button, a, input[type=submit]", "^\\s*accedi") }

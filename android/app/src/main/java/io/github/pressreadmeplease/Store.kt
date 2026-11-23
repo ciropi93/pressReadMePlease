@@ -8,8 +8,12 @@ data class Config(
     val mlolPass: String,
     val prUser: String,
     val prPass: String,
+    /** Login MLOL manuale (SPID): utente/password MLOL non servono. */
+    val spid: Boolean = false,
 ) {
-    fun isComplete() = listOf(mlolSite, mlolUser, mlolPass, prUser, prPass).all { it.isNotBlank() }
+    fun isComplete() =
+        listOf(mlolSite, prUser, prPass).all { it.isNotBlank() } &&
+            (spid || (mlolUser.isNotBlank() && mlolPass.isNotBlank()))
 }
 
 /** Salva la configurazione nelle SharedPreferences private dell'app (backup disattivato nel manifest). */
@@ -22,6 +26,7 @@ class Store(context: Context) {
         mlolPass = prefs.getString("mlol_pass", "") ?: "",
         prUser = prefs.getString("pr_user", "") ?: "",
         prPass = prefs.getString("pr_pass", "") ?: "",
+        spid = prefs.getBoolean("spid", false),
     )
 
     fun save(c: Config) {
@@ -31,6 +36,7 @@ class Store(context: Context) {
             .putString("mlol_pass", c.mlolPass)
             .putString("pr_user", c.prUser)
             .putString("pr_pass", c.prPass)
+            .putBoolean("spid", c.spid)
             .apply()
     }
 

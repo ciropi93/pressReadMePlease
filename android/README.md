@@ -11,7 +11,7 @@ Il tutto gira in una `WebView` pilotata via JavaScript (la sfida ALTCHA di MLOL 
 
 ## Uso
 
-1. Inserisci indirizzo MLOL (`https://xxx.medialibrary.it`), credenziali MLOL e credenziali PressReader → **Salva configurazione**.
+1. Inserisci indirizzo MLOL (`https://xxx.medialibrary.it`) e credenziali PressReader. Per MLOL: username + password, oppure spunta **Accesso con SPID** (vedi sotto) → **Salva configurazione**.
 2. Premi **Rinnova ora** e lascia l'app aperta in primo piano finché non compare `OK` (o l'errore) nel log.
    Durante l'esecuzione la WebView è visibile, così puoi vedere dove si blocca.
 
@@ -29,3 +29,10 @@ Le notifiche Telegram dell'originale non sono incluse: l'esito è mostrato nel l
 
 I selettori sono quelli di `src/mlol.py` e `src/pressreader.py`, tutti in `app/src/main/java/io/github/pressreadmeplease/Renewer.kt`.
 Se MLOL/PressReader cambiano pagina, si aggiornano lì (di solito in coppia con la versione Python).
+
+## Accesso MLOL con SPID
+
+Spunta **Accesso con SPID (login manuale)**: utente e password MLOL non servono. Premendo **Rinnova ora**
+l'app apre MLOL nella WebView e aspetta (max 5 minuti) che tu completi il login SPID a mano nella finestra;
+appena rileva l'accesso prosegue da sola con PressReader. I cookie vengono conservati, quindi se la sessione
+MLOL è ancora valida alla volta successiva il login SPID viene saltato.
