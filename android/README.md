@@ -33,6 +33,7 @@ Se MLOL/PressReader cambiano pagina, si aggiornano lì (di solito in coppia con 
 ## Accesso MLOL con SPID
 
 Spunta **Accesso con SPID (login manuale)**: utente e password MLOL non servono. Premendo **Rinnova ora**
-l'app apre MLOL nella WebView e aspetta (max 5 minuti) che tu completi il login SPID a mano nella finestra;
-appena rileva l'accesso prosegue da sola con PressReader. I cookie vengono conservati, quindi se la sessione
-MLOL è ancora valida alla volta successiva il login SPID viene saltato.
+l'app apre MLOL nella WebView e si ferma. Fai tu il login SPID nella finestra (se il gestore usa un'app,
+come PosteID, il link la apre; approva e torna all'app) e poi premi **Ho finito il login → Continua**:
+da lì l'app prosegue da sola con PressReader. I cookie vengono conservati, quindi se la sessione MLOL è
+ancora valida alla volta successiva basta premere subito **Continua**.

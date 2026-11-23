@@ -1,6 +1,7 @@
 package io.github.pressreadmeplease
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.graphics.Bitmap
 import android.os.SystemClock
 import android.webkit.CookieManager
@@ -26,7 +27,11 @@ class FlowException(message: String) : Exception(message)
  * Tutto gira dentro una WebView pilotata via JavaScript (la sfida ALTCHA di MLOL
  * viene risolta dal browser stesso, come in Chromium).
  */
-class Renewer(private val web: WebView, private val log: (String) -> Unit) {
+class Renewer(
+    private val web: WebView,
+    private val log: (String) -> Unit,
+    private val waitForUser: suspend () -> Unit,
+) {
 
     companion object {
         const val EXPECTED_FREE_ACCESS_DAYS = 2
@@ -70,12 +75,40 @@ class Renewer(private val web: WebView, private val log: (String) -> Unit) {
 
         web.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
-                view.evaluateJavascript(viewportJs(), null)
+                forceDesktopViewport(view, url)
             }
 
             override fun onPageFinished(view: WebView, url: String?) {
                 pageLoads++
-                view.evaluateJavascript(viewportJs(), null)
+                forceDesktopViewport(view, url)
+            }
+
+            // Link non-http (intent:, postemobile://, spid://...): li passiamo ad Android,
+            // così l'app del gestore SPID (es. PosteID) può aprirsi.
+            override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                val url = request.url.toString()
+                if (url.startsWith("http://") || url.startsWith("https://") ||
+                    url.startsWith("about:") || url.startsWith("javascript:")
+                ) {
+                    return false
+                }
+                try {
+                    val intent = if (url.startsWith("intent:")) {
+                        Intent.parseUri(url, Intent.URI_INTENT_SCHEME).apply {
+                            addCategory(Intent.CATEGORY_BROWSABLE)
+                            component = null
+                            selector = null
+                        }
+                    } else {
+                        Intent(Intent.ACTION_VIEW, request.url)
+                    }
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    view.context.startActivity(intent)
+                    log("Apro app esterna: ${request.url.scheme}")
+                } catch (e: Exception) {
+                    log("Impossibile aprire l'app esterna (${request.url.scheme}): ${e.message}")
+                }
+                return true
             }
 
             override fun onReceivedHttpError(
@@ -89,6 +122,13 @@ class Renewer(private val web: WebView, private val log: (String) -> Unit) {
                     accessDenied = true
                 }
             }
+        }
+    }
+
+    /** Layout desktop solo su MLOL e PressReader: le pagine del gestore SPID restano a misura di telefono. */
+    private fun forceDesktopViewport(view: WebView, url: String?) {
+        if (url != null && (url.contains("medialibrary.it") || url.contains("pressreader"))) {
+            view.evaluateJavascript(viewportJs(), null)
         }
     }
 
@@ -135,15 +175,9 @@ class Renewer(private val web: WebView, private val log: (String) -> Unit) {
 
     private suspend fun login(config: Config, origin: String) {
         if (config.spid) {
-            if (waitFor("a[href*='logout']", 3000)) {
-                log("MLOL: sessione già attiva, salto il login")
-                return
-            }
-            log("MLOL: accedi con SPID nella finestra qui sotto (attendo fino a 5 minuti)")
-            if (!waitUntil(300000, 1000) { exists("a[href*='logout']") }) {
-                throw FlowException("Login SPID non completato entro 5 minuti")
-            }
-            log("MLOL: login SPID rilevato")
+            log("MLOL: fai il login SPID nella finestra qui sotto, poi premi 'Ho finito il login'. Se sei già dentro, premilo subito.")
+            waitForUser()
+            log("MLOL: proseguo")
             return
         }
 
@@ -203,7 +237,7 @@ class Renewer(private val web: WebView, private val log: (String) -> Unit) {
             ) as? String
             href != null
         }
-        val target = href ?: throw FlowException("Corriere della Sera non trovato nell'elenco Edicola")
+        val target = href ?: throw FlowException("Corriere della Sera non trovato nell'elenco Edicola (login MLOL riuscito?)")
         val base = eval("return location.href;") as? String ?: origin
         open(URI(base).resolve(target).toString())
 

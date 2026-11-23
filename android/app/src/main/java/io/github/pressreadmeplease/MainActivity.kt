@@ -19,6 +19,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.util.Date
@@ -28,6 +29,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var store: Store
     private lateinit var renewer: Renewer
     private lateinit var web: WebView
+    private lateinit var scroll: ScrollView
+    private lateinit var continueButton: Button
+    private var userDone: CompletableDeferred<Unit>? = null
 
     private lateinit var mlolSite: EditText
     private lateinit var mlolUser: EditText
@@ -90,6 +94,13 @@ class MainActivity : AppCompatActivity() {
         }
         root.addView(logView)
 
+        continueButton = Button(this).apply {
+            text = "Ho finito il login → Continua"
+            visibility = View.GONE
+            setOnClickListener { userDone?.complete(Unit) }
+        }
+        root.addView(continueButton)
+
         web = WebView(this).apply {
             visibility = View.GONE
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(560))
@@ -100,9 +111,10 @@ class MainActivity : AppCompatActivity() {
         }
         root.addView(web)
 
-        setContentView(ScrollView(this).apply { addView(root) })
+        scroll = ScrollView(this).apply { addView(root) }
+        setContentView(scroll)
 
-        renewer = Renewer(web, ::log)
+        renewer = Renewer(web, ::log, ::waitForUser)
 
         val c = store.load()
         mlolSite.setText(c.mlolSite)
@@ -131,6 +143,19 @@ class MainActivity : AppCompatActivity() {
         hint = hintText
         inputType = type
         setSingleLine()
+    }
+
+    private suspend fun waitForUser() {
+        val d = CompletableDeferred<Unit>()
+        userDone = d
+        continueButton.visibility = View.VISIBLE
+        scroll.post { scroll.smoothScrollTo(0, continueButton.top) }
+        try {
+            d.await()
+        } finally {
+            continueButton.visibility = View.GONE
+            userDone = null
+        }
     }
 
     private fun updateSpidVisibility(spid: Boolean) {
