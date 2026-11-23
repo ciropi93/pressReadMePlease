@@ -7,17 +7,33 @@ android {
     namespace = "io.github.pressreadmeplease"
     compileSdk = 34
 
+    // Chiave fissa: ogni build (anche quelle di GitHub Actions) ha la stessa firma,
+    // così l'APK si installa sopra la versione precedente senza disinstallare.
+    signingConfigs {
+        create("fixed") {
+            storeFile = rootProject.file("keystore/pressreadmeplease.jks")
+            storePassword = "pressreadmeplease"
+            keyAlias = "pressreadmeplease"
+            keyPassword = "pressreadmeplease"
+        }
+    }
+
     defaultConfig {
         applicationId = "io.github.pressreadmeplease"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
+        // Cresce a ogni run di CI, così Android accetta sempre l'aggiornamento.
+        versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
         versionName = "1.0"
     }
 
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("fixed")
+        }
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("fixed")
         }
     }
     compileOptions {

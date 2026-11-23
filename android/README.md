@@ -37,3 +37,10 @@ l'app apre MLOL nella WebView e si ferma. Fai tu il login SPID nella finestra (s
 come PosteID, il link la apre; approva e torna all'app) e poi premi **Ho finito il login → Continua**:
 da lì l'app prosegue da sola con PressReader. I cookie vengono conservati, quindi se la sessione MLOL è
 ancora valida alla volta successiva basta premere subito **Continua**.
+
+## Aggiornare l'app senza disinstallare
+
+Tutte le build sono firmate con la stessa chiave (`keystore/pressreadmeplease.jks`) e il `versionCode`
+cresce a ogni run di CI: basta installare il nuovo APK sopra il vecchio, configurazione e cookie restano.
+(Solo il primo passaggio dalle vecchie build, firmate con chiavi casuali, richiede una disinstallazione.)
+La chiave è nel repo per semplicità: va bene per un'app personale, ma non usarla per distribuire l'app ad altri.
